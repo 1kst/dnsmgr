@@ -146,21 +146,11 @@ class CheckUtils
             $templates = array_values($apiTemplates);
         }
 
-        $defaults = [
-            'https://v2.xxapi.cn/api/tcping?address={ip}&port={port}',
-            'https://api.jaxing.cc/v2/Tcping?host={ip}&port={port}',
-        ];
-
         $urls = [];
         foreach ($templates as $template) {
             $template = trim((string)$template);
             if ($template === '') continue;
             $urls[] = str_replace(['{ip}', '{port}'], [rawurlencode($target), rawurlencode((string)$port)], $template);
-        }
-        if (empty($urls)) {
-            foreach ($defaults as $template) {
-                $urls[] = str_replace(['{ip}', '{port}'], [rawurlencode($target), rawurlencode((string)$port)], $template);
-            }
         }
         if (empty($urls)) {
             return ['status' => false, 'errmsg' => 'No third-party TCP API configured', 'usetime' => 0];
