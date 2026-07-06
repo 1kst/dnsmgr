@@ -170,6 +170,7 @@ Route::group(function () {
     Route::get('/system/webhooktest', 'system/webhooktest');
     Route::get('/system/customwebhooktest', 'system/customwebhooktest');
     Route::post('/system/proxytest', 'system/proxytest');
+    Route::post('/system/dmtcpapitest', 'system/dmtcpapitest');
     Route::get('/system/cronset', 'system/cronset');
 
 })->middleware(CheckLogin::class)

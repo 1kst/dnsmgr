@@ -93,6 +93,7 @@ class Dmonitor extends BaseController
                 'main_value' => input('post.main_value', null, 'trim'),
                 'backup_value' => input('post.backup_value', null, 'trim'),
                 'checktype' => input('post.checktype/d'),
+                'detect_source' => input('post.detect_source/d', 0),
                 'checkurl' => input('post.checkurl', null, 'trim'),
                 'tcpport' => !empty(input('post.tcpport')) ? input('post.tcpport/d') : null,
                 'frequency' => input('post.frequency/d'),
@@ -108,6 +109,15 @@ class Dmonitor extends BaseController
 
             if (empty($task['did']) || empty($task['rr']) || empty($task['recordid']) || empty($task['main_value']) || empty($task['frequency']) || empty($task['cycle'])) {
                 return json(['code' => -1, 'msg' => '必填项不能为空']);
+            }
+            if (!in_array($task['detect_source'], [0, 1], true)) {
+                return json(['code' => -1, 'msg' => 'Invalid detect_source']);
+            }
+            if ($task['detect_source'] == 1 && $task['type'] <= 2) {
+                $task['checktype'] = 1;
+                if (empty($task['tcpport'])) {
+                    return json(['code' => -1, 'msg' => 'Third-party TCP port required']);
+                }
             }
             if ($task['checktype'] > 0 && $task['timeout'] > $task['frequency']) {
                 return json(['code' => -1, 'msg' => '为保障容灾切换任务正常运行，最大超时时间不能大于检测间隔']);
@@ -130,6 +140,7 @@ class Dmonitor extends BaseController
                 'main_value' => input('post.main_value', null, 'trim'),
                 'backup_value' => input('post.backup_value', null, 'trim'),
                 'checktype' => input('post.checktype/d'),
+                'detect_source' => input('post.detect_source/d', 0),
                 'checkurl' => input('post.checkurl', null, 'trim'),
                 'tcpport' => !empty(input('post.tcpport')) ? input('post.tcpport/d') : null,
                 'frequency' => input('post.frequency/d'),
@@ -143,6 +154,15 @@ class Dmonitor extends BaseController
 
             if (empty($task['did']) || empty($task['rr']) || empty($task['recordid']) || empty($task['main_value']) || empty($task['frequency']) || empty($task['cycle'])) {
                 return json(['code' => -1, 'msg' => '必填项不能为空']);
+            }
+            if (!in_array($task['detect_source'], [0, 1], true)) {
+                return json(['code' => -1, 'msg' => 'Invalid detect_source']);
+            }
+            if ($task['detect_source'] == 1 && $task['type'] <= 2) {
+                $task['checktype'] = 1;
+                if (empty($task['tcpport'])) {
+                    return json(['code' => -1, 'msg' => 'Third-party TCP port required']);
+                }
             }
             if ($task['checktype'] > 0 && $task['timeout'] > $task['frequency']) {
                 return json(['code' => -1, 'msg' => '为保障容灾切换任务正常运行，最大超时时间不能大于检测间隔']);

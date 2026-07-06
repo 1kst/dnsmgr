@@ -42,7 +42,10 @@ class TaskRunner
                 $this->db()->name('dmtask')->where('id', $row['id'])->update(['status' => 0, 'errcount' => 0, 'switchtime' => time()]);
             }
         } else {
-            if ($row['checktype'] == 2) {
+            $detectSource = isset($row['detect_source']) ? intval($row['detect_source']) : 0;
+            if ($detectSource === 1) {
+                $result = CheckUtils::tcpThirdParty($row['main_value'], $row['checkurl'], $row['tcpport'], $row['timeout']);
+            } elseif ($row['checktype'] == 2) {
                 $result = CheckUtils::curl($row['checkurl'], $row['timeout'], $row['main_value'], $row['proxy'] == 1);
             } elseif ($row['checktype'] == 1) {
                 $result = CheckUtils::tcp($row['main_value'], $row['checkurl'], $row['tcpport'], $row['timeout']);

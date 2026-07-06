@@ -68,6 +68,17 @@
         </div>
     </div>
     <div class="form-group" v-show="set.type<=2">
+        <label class="col-sm-3 control-label no-padding-right" is-required>检测来源</label>
+        <div class="col-sm-6">
+            <label class="radio-inline">
+                <input type="radio" name="detect_source" :value="0" v-model="set.detect_source"> 本机检测
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="detect_source" :value="1" v-model="set.detect_source"> 第三方API检测
+            </label>
+        </div>
+    </div>
+    <div class="form-group" v-show="set.type<=2&&set.detect_source!=1">
         <label class="col-sm-3 control-label no-padding-right" is-required>检测协议</label>
         <div class="col-sm-6">
             <label class="radio-inline" v-for="option in checktypeList">
@@ -75,25 +86,25 @@
             </label>
         </div>
     </div>
-    <div class="form-group" v-show="set.type<=2&&set.checktype<2">
+    <div class="form-group" v-show="set.type<=2&&(set.detect_source==1||set.checktype<2)">
         <label class="col-sm-3 control-label no-padding-right">指定检测IP</label>
         <div class="col-sm-6">
             <input type="text" name="checkip" v-model="set.checkurl" placeholder="留空默认为解析记录值IP" class="form-control"  data-bv-ip="true">
         </div>
     </div>
-    <div class="form-group" v-show="set.type<=2&&set.checktype==1">
+    <div class="form-group" v-show="set.type<=2&&(set.checktype==1||set.detect_source==1)">
         <label class="col-sm-3 control-label no-padding-right" is-required>TCP检测端口</label>
         <div class="col-sm-6">
             <input type="text" name="tcpport" v-model="set.tcpport" placeholder="填写TCP端口号" class="form-control" data-bv-integer="true" min="1" max="65535" required>
         </div>
     </div>
-    <div class="form-group" v-show="set.type<=2&&set.checktype==2">
+    <div class="form-group" v-show="set.type<=2&&set.detect_source!=1&&set.checktype==2">
         <label class="col-sm-3 control-label no-padding-right" is-required>检测URL地址</label>
         <div class="col-sm-6">
             <input type="text" name="checkurl" v-model="set.checkurl" placeholder="填写以http(s)://开头的完整地址，http状态码须为2xx/3xx" class="form-control" data-bv-uri="true" required>
         </div>
     </div>
-    <div class="form-group" v-show="set.type<=2&&set.checktype==2">
+    <div class="form-group" v-show="set.type<=2&&set.detect_source!=1&&set.checktype==2">
         <label class="col-sm-3 control-label no-padding-right">使用代理请求</label>
         <div class="col-sm-6">
             <label class="radio-inline">
@@ -104,7 +115,7 @@
             </label>
         </div>
     </div>
-    <div class="form-group" v-show="set.type<=2&&set.checktype>0">
+    <div class="form-group" v-show="set.type<=2&&((set.detect_source==1)||set.checktype>0)">
         <label class="col-sm-3 control-label no-padding-right" is-required>最大超时时间</label>
         <div class="col-sm-3">
             <div class="input-group">
@@ -171,6 +182,7 @@ new Vue({
             type: 1,
             backup_value: '',
             checktype: 1,
+            detect_source: 0,
             tcpport: 80,
             checkurl: '',
             frequency: 5,
@@ -207,6 +219,12 @@ new Vue({
         'set.did': function(val){
             if(val == '') return;
             this.dnstype = this.domainList.find(item => item.id == val).type;
+        },
+        'set.detect_source': function(val){
+            if(String(val) === '1'){
+                this.set.checktype = 1;
+                if(!this.set.tcpport) this.set.tcpport = 80;
+            }
         }
     },
     mounted() {
@@ -262,6 +280,16 @@ new Vue({
         },
         submit(){
             var that=this;
+            if(this.set.detect_source === '' || this.set.detect_source === null || typeof this.set.detect_source === 'undefined'){
+                this.set.detect_source = 0;
+            }
+            if(String(this.set.detect_source) === '1'){
+                this.set.checktype = 1;
+                if(!this.set.tcpport){
+                    layer.alert('第三方TCP检测端口不能为空', {icon: 2});
+                    return false;
+                }
+            }
             $("#taskform").data("bootstrapValidator").validate();
             if(!$("#taskform").data("bootstrapValidator").isValid()){
                 return false;

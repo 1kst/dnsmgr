@@ -157,6 +157,9 @@ ADD COLUMN `proxy` tinyint(1) NOT NULL DEFAULT '0';
 ALTER TABLE `dnsmgr_dmtask`
 ADD COLUMN `cdn` tinyint(1) NOT NULL DEFAULT 0;
 
+ALTER TABLE `dnsmgr_dmtask`
+ADD COLUMN `detect_source` tinyint(1) NOT NULL DEFAULT 0;
+
 ALTER TABLE `dnsmgr_domain`
 ADD COLUMN `is_notice` tinyint(1) NOT NULL DEFAULT '0',
 ADD COLUMN `regtime` datetime DEFAULT NULL,

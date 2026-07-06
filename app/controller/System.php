@@ -11,6 +11,7 @@ use app\service\OptimizeService;
 use app\service\CertTaskService;
 use app\service\ExpireNoticeService;
 use app\service\ScheduleService;
+use app\utils\CheckUtils;
 
 class System extends BaseController
 {
@@ -125,6 +126,29 @@ class System extends BaseController
             }
         }
         return json(['code' => 0]);
+    }
+
+    public function dmtcpapitest()
+    {
+        if (!checkPermission(2)) return $this->alert('error', '无权限');
+        $api1 = input('post.dmonitor_tcp_api1', '', 'trim');
+        $api2 = input('post.dmonitor_tcp_api2', '', 'trim');
+        $timeout = input('post.dmonitor_tcp_api_timeout/d', 5);
+
+        if ($api1 === '' && $api2 === '') {
+            return json(['code' => -1, 'msg' => '请至少填写一个第三方TCP API']);
+        }
+        if ($timeout <= 0) {
+            $timeout = 5;
+        }
+
+        $test_ip = '1.1.1.1';
+        $test_port = 53;
+        $res = CheckUtils::tcpThirdParty($test_ip, null, $test_port, $timeout, [$api1, $api2], $timeout);
+        if ($res['status']) {
+            return json(['code' => 0, 'msg' => '第三方TCP API检测成功，耗时'.$res['usetime'].'ms']);
+        }
+        return json(['code' => -1, 'msg' => '第三方TCP API检测失败：'.($res['errmsg'] ?? '未知错误')]);
     }
 
     public function cronset()

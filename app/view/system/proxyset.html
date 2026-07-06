@@ -34,6 +34,21 @@
 	  </select></div>
 	</div><br/>
 	<div class="form-group">
+	  <label class="col-sm-3 control-label">第三方TCP API1</label>
+	  <div class="col-sm-9"><input type="text" name="dmonitor_tcp_api1" value="{:config_get('dmonitor_tcp_api1')}" class="form-control" placeholder="https://v2.xxapi.cn/api/tcping?address={ip}&port={port}"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">第三方TCP API2</label>
+	  <div class="col-sm-9"><input type="text" name="dmonitor_tcp_api2" value="{:config_get('dmonitor_tcp_api2')}" class="form-control" placeholder="https://api.jaxing.cc/v2/Tcping?host={ip}&port={port}"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">第三方超时(秒)</label>
+	  <div class="col-sm-9"><input type="text" name="dmonitor_tcp_api_timeout" value="{:config_get('dmonitor_tcp_api_timeout','5')}" class="form-control" placeholder="默认5"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <div class="col-sm-offset-3 col-sm-9"><a href="javascript:dmtcpapitest()" class="btn btn-default btn-block">测试第三方TCP API</a></div>
+	</div><br/>
+	<div class="form-group">
 	  <div class="col-sm-offset-3 col-sm-9"><input type="submit" name="submit" value="保存" class="btn btn-primary btn-block"/><br/>
 		<a href="javascript:proxytest()" class="btn btn-default btn-block">测试连通性</a></div>
 	</div>
@@ -44,6 +59,9 @@
 </div>
 </div>
 </div>
+</div>
+<div class="panel-footer">
+第三方TCP API URL支持占位符：<code>{ip}</code>、<code>{port}</code>。
 </div>
 {/block}
 {block name="script"}
@@ -102,6 +120,38 @@ function proxytest(){
 				layer.alert('连通性测试成功！', {icon: 1})
 			}else{
 				layer.alert('连通性测试失败：'+data.msg, {icon: 2})
+			}
+		},
+		error:function(data){
+			layer.close(ii);
+			layer.msg('服务器错误');
+		}
+	});
+}
+function dmtcpapitest(){
+	var dmonitor_tcp_api1 = $("input[name='dmonitor_tcp_api1']").val();
+	var dmonitor_tcp_api2 = $("input[name='dmonitor_tcp_api2']").val();
+	var dmonitor_tcp_api_timeout = $("input[name='dmonitor_tcp_api_timeout']").val();
+	if(dmonitor_tcp_api1=='' && dmonitor_tcp_api2==''){
+		layer.alert('请至少填写一个第三方TCP API');
+		return false;
+	}
+	var ii = layer.load(2, {shade:[0.1,'#fff']});
+	$.ajax({
+		type : 'POST',
+		url : '/system/dmtcpapitest',
+		data : {
+			dmonitor_tcp_api1:dmonitor_tcp_api1,
+			dmonitor_tcp_api2:dmonitor_tcp_api2,
+			dmonitor_tcp_api_timeout:dmonitor_tcp_api_timeout,
+		},
+		dataType : 'json',
+		success : function(data) {
+			layer.close(ii);
+			if(data.code == 0){
+				layer.alert(data.msg, {icon: 1})
+			}else{
+				layer.alert(data.msg, {icon: 2})
 			}
 		},
 		error:function(data){

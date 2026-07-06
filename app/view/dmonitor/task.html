@@ -109,7 +109,9 @@ $(document).ready(function(){
 				title: '检测协议',
 				formatter: function(value, row, index) {
 					if(row.type <= 2){
-						if(value == 1) {
+						if(parseInt(row.detect_source || 0) === 1){
+							return '<span title="" data-toggle="tooltip" data-placement="bottom" data-original-title="'+(row.tcpport||'')+'端口" class="tips">第三方API(TCP)</span>';
+						} else if(value == 1) {
 							return '<span title="" data-toggle="tooltip" data-placement="bottom" data-original-title="'+row.tcpport+'端口" class="tips">TCP</span>';
 						} else if(value == 2) {
 							return '<span title="" data-toggle="tooltip" data-placement="bottom" data-original-title="'+row.checkurl+'" class="tips">HTTP(S)</span>';

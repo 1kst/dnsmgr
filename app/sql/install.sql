@@ -95,6 +95,7 @@ CREATE TABLE `dnsmgr_dmtask` (
   `main_value` varchar(128) DEFAULT NULL,
   `backup_value` varchar(128) DEFAULT NULL,
   `checktype` tinyint(1) NOT NULL DEFAULT 0,
+  `detect_source` tinyint(1) NOT NULL DEFAULT 0,
   `checkurl` varchar(512) DEFAULT NULL,
   `tcpport` int(5) DEFAULT NULL,
   `frequency` tinyint(5) NOT NULL,

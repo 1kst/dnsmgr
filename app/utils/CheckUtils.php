@@ -4,6 +4,7 @@ namespace app\utils;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Promise\Utils as PromiseUtils;
 
 class CheckUtils
 {
@@ -111,6 +112,123 @@ class CheckUtils
         $endtime = getMillisecond();
         $usetime = $endtime - $starttime;
         return ['status' => $status, 'errmsg' => $errStr, 'usetime' => $usetime];
+    }
+
+    public static function tcpThirdParty($target, $ip, $port, $timeout, $apiTemplates = null, $apiTimeout = null)
+    {
+        if (!empty($ip) && filter_var($ip, FILTER_VALIDATE_IP)) $target = $ip;
+        if (str_ends_with($target, '.')) $target = substr($target, 0, -1);
+        if (!filter_var($target, FILTER_VALIDATE_IP) && checkDomain($target)) {
+            $target = gethostbyname($target);
+            if (!$target) return ['status' => false, 'errmsg' => 'DNS resolve failed', 'usetime' => 0];
+        }
+        if (!filter_var($target, FILTER_VALIDATE_IP)) {
+            return ['status' => false, 'errmsg' => 'Invalid IP address', 'usetime' => 0];
+        }
+        $port = intval($port);
+        if ($port <= 0 || $port > 65535) {
+            return ['status' => false, 'errmsg' => 'Invalid TCP port', 'usetime' => 0];
+        }
+
+        $timeoutSec = intval($apiTimeout ?? config_get('dmonitor_tcp_api_timeout', $timeout));
+        if ($timeoutSec <= 0) $timeoutSec = 5;
+
+        if (!is_array($apiTemplates)) {
+            $templates = [
+                config_get('dmonitor_tcp_api1', ''),
+                config_get('dmonitor_tcp_api2', ''),
+            ];
+            $legacyApi = trim((string)config_get('dmonitor_tcp_api3', ''));
+            if (empty(trim((string)$templates[1])) && $legacyApi !== '') {
+                $templates[1] = $legacyApi;
+            }
+        } else {
+            $templates = array_values($apiTemplates);
+        }
+
+        $defaults = [
+            'https://v2.xxapi.cn/api/tcping?address={ip}&port={port}',
+            'https://api.jaxing.cc/v2/Tcping?host={ip}&port={port}',
+        ];
+
+        $urls = [];
+        foreach ($templates as $template) {
+            $template = trim((string)$template);
+            if ($template === '') continue;
+            $urls[] = str_replace(['{ip}', '{port}'], [rawurlencode($target), rawurlencode((string)$port)], $template);
+        }
+        if (empty($urls)) {
+            foreach ($defaults as $template) {
+                $urls[] = str_replace(['{ip}', '{port}'], [rawurlencode($target), rawurlencode((string)$port)], $template);
+            }
+        }
+        if (empty($urls)) {
+            return ['status' => false, 'errmsg' => 'No third-party TCP API configured', 'usetime' => 0];
+        }
+
+        $start = microtime(true);
+        $options = [
+            'timeout' => $timeoutSec,
+            'connect_timeout' => $timeoutSec,
+            'verify' => false,
+            'http_errors' => false,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
+            ],
+        ];
+        $client = new Client();
+        $promises = [];
+        foreach ($urls as $i => $url) {
+            $promises[$i] = $client->requestAsync('GET', $url, $options);
+        }
+
+        $settled = PromiseUtils::settle($promises)->wait();
+        $errors = [];
+        foreach ($settled as $item) {
+            if (($item['state'] ?? '') !== 'fulfilled') {
+                $reason = $item['reason'] ?? null;
+                $errors[] = $reason instanceof \Throwable ? guzzle_error($reason) : 'request failed';
+                continue;
+            }
+
+            $response = $item['value'];
+            $httpcode = $response->getStatusCode();
+            if ($httpcode < 200 || $httpcode >= 400) {
+                $errors[] = 'http_code=' . $httpcode;
+                continue;
+            }
+
+            $res = json_decode((string)$response->getBody(), true);
+            if (!is_array($res)) {
+                $errors[] = 'Invalid JSON';
+                continue;
+            }
+
+            $code = $res['code'] ?? null;
+            if ($code !== 200 && $code !== '200' && $code !== 'ok' && $code !== 'OK') {
+                $errors[] = isset($res['msg']) ? (string)$res['msg'] : 'code=' . (is_scalar($code) ? (string)$code : 'null');
+                continue;
+            }
+
+            $data = isset($res['data']) && is_array($res['data']) ? $res['data'] : [];
+            $ping = $data['ping'] ?? ($data['平均延迟'] ?? null);
+            if ($ping === null || $ping === '') {
+                $errors[] = 'empty ping';
+                continue;
+            }
+            $pingStr = is_scalar($ping) ? (string)$ping : (string)json_encode($ping, JSON_UNESCAPED_UNICODE);
+            if (str_contains($pingStr, '失败') || str_contains($pingStr, '超时') || stripos($pingStr, 'fail') !== false || stripos($pingStr, 'timeout') !== false) {
+                $errors[] = $pingStr;
+                continue;
+            }
+
+            $usetime = round((microtime(true) - $start) * 1000);
+            return ['status' => true, 'errmsg' => null, 'usetime' => $usetime];
+        }
+
+        $errmsg = empty($errors) ? 'third-party tcp check failed' : implode(' | ', array_unique($errors));
+        $usetime = round((microtime(true) - $start) * 1000);
+        return ['status' => false, 'errmsg' => $errmsg, 'usetime' => $usetime];
     }
 
     public static function ping($target, $ip)
